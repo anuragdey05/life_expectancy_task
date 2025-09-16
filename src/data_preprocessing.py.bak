@@ -1,4 +1,7 @@
-   
+"""
+Data preprocessing module for life expectancy prediction.
+This module handles data loading, cleaning, and feature engineering.
+"""
 
 import pandas as pd
 import numpy as np
@@ -22,17 +25,17 @@ def load_data(file_path):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.abspath(os.path.join(script_dir, "..", ".."))
 
-                                      
+    # Build candidate paths (in order)
     candidates = []
     candidates.append(file_path)
     if not os.path.isabs(file_path):
         candidates.append(os.path.abspath(os.path.join(script_dir, file_path)))
 
-                                                                               
+    # If asking for train_data.csv, also try Life_Expectancy.csv in same folder
     base_dir = os.path.dirname(candidates[-1]) if candidates else script_dir
     candidates.append(os.path.join(base_dir, "Life_Expectancy.csv"))
 
-                                               
+    # Try project-root data/Life_Expectancy.csv
     candidates.append(os.path.join(repo_root, "data", "Life_Expectancy.csv"))
 
     last_err = None
@@ -66,18 +69,18 @@ def clean_data(df):
     """
     print("Cleaning data...")
     
-                                          
+    # Display basic info about the dataset
     print(f"Original shape: {df.shape}")
     print(f"Missing values:\n{df.isnull().sum()}")
     
-                           
-                                             
+    # Handle missing values
+    # For numerical columns, fill with median
     numerical_cols = df.select_dtypes(include=[np.number]).columns
     for col in numerical_cols:
         if df[col].isnull().sum() > 0:
             df[col].fillna(df[col].median(), inplace=True)
     
-                                             
+    # For categorical columns, fill with mode
     categorical_cols = df.select_dtypes(include=['object']).columns
     for col in categorical_cols:
         if df[col].isnull().sum() > 0:
@@ -99,11 +102,11 @@ def encode_categorical_features(df, target_column):
     """
     print("Encoding categorical features...")
     
-                                  
+    # Separate features and target
     X = df.drop(columns=[target_column])
     y = df[target_column]
     
-                                
+    # Encode categorical columns
     categorical_cols = X.select_dtypes(include=['object']).columns
     label_encoders = {}
     
@@ -112,7 +115,7 @@ def encode_categorical_features(df, target_column):
         X[col] = le.fit_transform(X[col].astype(str).tolist())
         label_encoders[col] = le
     
-                                 
+    # Combine features and target
     df_encoded = pd.concat([X, y], axis=1)
     
     print(f"Encoded categorical columns: {list(categorical_cols)}")
@@ -201,30 +204,30 @@ def preprocess_pipeline(file_path, target_column, test_size=0.2, random_state=42
     """
     print("Starting preprocessing pipeline...")
     
-               
+    # Load data
     df = load_data(file_path)
     if df is None:
         return None
     
-                
+    # Clean data
     df_clean = clean_data(df)
 
-                                                                                 
+    # Compute imputation stats on cleaned data (equivalent to used medians/modes)
     numerical_cols = df_clean.select_dtypes(include=[np.number]).columns
     categorical_cols = df_clean.select_dtypes(include=['object']).columns
     numerical_medians = {col: float(df_clean[col].median()) for col in numerical_cols}
     categorical_modes = {col: str(df_clean[col].mode()[0]) for col in categorical_cols if df_clean[col].nunique() > 0}
     
-                                 
+    # Encode categorical features
     df_encoded, label_encoders = encode_categorical_features(df_clean, target_column)
     
-                                 
+    # Prepare features and target
     X, y = prepare_features_target(df_encoded, target_column)
     
-                
+    # Split data
     X_train, X_test, y_train, y_test = split_data(X, y, test_size, random_state)
     
-                    
+    # Scale features
     X_train_scaled, X_test_scaled, scaler = scale_features(X_train, X_test)
     
     print("Preprocessing pipeline completed successfully!")
@@ -243,13 +246,13 @@ def preprocess_pipeline(file_path, target_column, test_size=0.2, random_state=42
     }
 
 if __name__ == "__main__":
-                   
-                                                                                    
+    # Example usage
+    # Per project spec, default to task-local train_data.csv, with robust resolution
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_path = os.path.join(script_dir, "..", "data", "train_data.csv")
-    target_col = "Life expectancy"                                    
+    target_col = "Life expectancy"  # Exact column name in WHO dataset
     
-                                
+    # Run preprocessing pipeline
     processed_data = preprocess_pipeline(data_path, target_col)
     
     if processed_data:

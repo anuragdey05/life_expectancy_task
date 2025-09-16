@@ -1,4 +1,7 @@
-   
+"""
+Model training module for life expectancy prediction.
+This module implements linear regression and other models.
+"""
 
 import pandas as pd
 import numpy as np
@@ -14,7 +17,7 @@ from ml_scratch import (
     cross_val_score_scratch,
 )
 
-                                 
+# Import our preprocessing module
 from data_preprocessing import preprocess_pipeline
 
 
@@ -37,7 +40,7 @@ class LifeExpectancyModel:
         self.model_metrics = {}
         self.best_model = None
         self.best_model_name = None
-                                 
+        # preprocessing artifacts
         self.scaler = None
         self.label_encoders = None
         self.feature_names = None
@@ -71,24 +74,24 @@ class LifeExpectancyModel:
         for name, model in self.models.items():
             print(f"\nTraining {name}...")
             
-                             
+            # Train the model
             model.fit(X_train, y_train)
             
-                              
+            # Make predictions
             y_train_pred = model.predict(X_train)
             y_test_pred = model.predict(X_test)
             
-                               
+            # Calculate metrics
             train_metrics = self.calculate_metrics(y_train, y_train_pred, "train")
             test_metrics = self.calculate_metrics(y_test, y_test_pred, "test")
             
-                                         
+            # Cross-validation score (R2)
             cv_mean, cv_std = cross_val_score_scratch(
                 type(model), X_train, y_train, cv=5, metric='r2', random_state=42,
                 **({} if not isinstance(model, RidgeRegressionScratch) else {'alpha': model.alpha})
             )
             
-                           
+            # Store metrics
             self.model_metrics[name] = {
                 'train': train_metrics,
                 'test': test_metrics,
@@ -147,7 +150,7 @@ class LifeExpectancyModel:
                     best_score = score
                     self.best_model_name = name
                     self.best_model = self.models[name]
-            else:                                     
+            else:  # For RMSE and MAE, lower is better
                 if score < best_score:
                     best_score = score
                     self.best_model_name = name
@@ -167,10 +170,10 @@ class LifeExpectancyModel:
             models_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
         print(f"\nSaving models to {models_dir}...")
         
-                                              
+        # Create directory if it doesn't exist
         os.makedirs(models_dir, exist_ok=True)
         
-                                
+        # Save individual models
         for i, (name, model) in enumerate(self.models.items(), 1):
             filename = os.path.join(models_dir, f"regression_model{i}.pkl")
             pipeline = {
@@ -185,7 +188,7 @@ class LifeExpectancyModel:
             _atomic_pickle_dump(pipeline, filename)
             print(f"Saved {name} as regression_model{i}.pkl")
         
-                                      
+        # Save the best model as final
         if self.best_model is not None:
             final_filename = os.path.join(models_dir, "regression_model_final.pkl")
             pipeline = {
@@ -211,7 +214,7 @@ class LifeExpectancyModel:
             metrics_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results", "train_metrics.txt"))
         print(f"\nSaving metrics to {metrics_file}...")
         
-                                              
+        # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(metrics_file), exist_ok=True)
         
         with open(metrics_file, 'w') as f:
@@ -222,7 +225,7 @@ class LifeExpectancyModel:
                 f.write(f"MODEL: {name.upper()}\n")
                 f.write("-" * 30 + "\n")
                 
-                                  
+                # Training metrics
                 f.write("Training Performance:\n")
                 train_metrics = metrics['train']
                 f.write(f"  R² Score: {train_metrics['r2']:.4f}\n")
@@ -230,7 +233,7 @@ class LifeExpectancyModel:
                 f.write(f"  MAE: {train_metrics['mae']:.4f}\n")
                 f.write(f"  MSE: {train_metrics['mse']:.4f}\n")
                 
-                              
+                # Test metrics
                 f.write("Test Performance:\n")
                 test_metrics = metrics['test']
                 f.write(f"  R² Score: {test_metrics['r2']:.4f}\n")
@@ -238,13 +241,13 @@ class LifeExpectancyModel:
                 f.write(f"  MAE: {test_metrics['mae']:.4f}\n")
                 f.write(f"  MSE: {test_metrics['mse']:.4f}\n")
                 
-                                  
+                # Cross-validation
                 f.write("Cross-Validation:\n")
                 f.write(f"  R² Score: {metrics['cv_mean']:.4f} (+/- {metrics['cv_std'] * 2:.4f})\n")
                 
                 f.write("\n" + "=" * 60 + "\n\n")
             
-                                
+            # Best model summary
             if self.best_model_name:
                 f.write("BEST MODEL SUMMARY\n")
                 f.write("=" * 30 + "\n")
@@ -267,17 +270,17 @@ class LifeExpectancyModel:
             predictions_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results", "train_predictions.csv"))
         print(f"\nSaving predictions to {predictions_file}...")
         
-                                              
+        # Create directory if it doesn't exist
         os.makedirs(os.path.dirname(predictions_file), exist_ok=True)
         
-                                  
+        # Prepare predictions data
         predictions_data = []
         
         for name, metrics in self.model_metrics.items():
             train_pred = metrics['predictions']['train']
             test_pred = metrics['predictions']['test']
             
-                                      
+            # Add training predictions
             for i, pred in enumerate(train_pred):
                 predictions_data.append({
                     'model': name,
@@ -286,7 +289,7 @@ class LifeExpectancyModel:
                     'prediction': pred
                 })
             
-                                  
+            # Add test predictions
             for i, pred in enumerate(test_pred):
                 predictions_data.append({
                     'model': name,
@@ -295,7 +298,7 @@ class LifeExpectancyModel:
                     'prediction': pred
                 })
         
-                     
+        # Save to CSV
         predictions_df = pd.DataFrame(predictions_data)
         predictions_df.to_csv(predictions_file, index=False)
         
@@ -314,7 +317,7 @@ def train_life_expectancy_models(data_path="../data/train_data.csv",
     print("Starting Life Expectancy Model Training")
     print("=" * 50)
     
-                             
+    # Step 1: Preprocess data
     print("\nStep 1: Data Preprocessing")
     processed_data = preprocess_pipeline(data_path, target_column)
     
@@ -322,11 +325,11 @@ def train_life_expectancy_models(data_path="../data/train_data.csv",
         print("Error: Data preprocessing failed!")
         return None
     
-                                         
+    # Step 2: Initialize and train models
     print("\nStep 2: Model Training")
     model_trainer = LifeExpectancyModel()
     model_trainer.initialize_models()
-                                   
+    # store preprocessing artifacts
     model_trainer.scaler = processed_data['scaler']
     model_trainer.label_encoders = processed_data['label_encoders']
     model_trainer.feature_names = processed_data['feature_names']
@@ -341,11 +344,11 @@ def train_life_expectancy_models(data_path="../data/train_data.csv",
         processed_data['y_test']
     )
     
-                               
+    # Step 3: Select best model
     print("\nStep 3: Model Selection")
     model_trainer.select_best_model()
     
-                             
+    # Step 4: Save everything
     print("\nStep 4: Saving Results")
     model_trainer.save_models()
     model_trainer.save_metrics()
@@ -357,6 +360,6 @@ def train_life_expectancy_models(data_path="../data/train_data.csv",
     return model_trainer
 
 if __name__ == "__main__":
-                               
+    # Run the training pipeline
     trainer = train_life_expectancy_models()
 

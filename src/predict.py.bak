@@ -1,4 +1,8 @@
-   
+"""
+Spec-compliant prediction and evaluation script for the Life Expectancy task.
+Loads a saved pipeline (model + preprocessing), evaluates on a dataset, and
+writes metrics and predictions in the exact required formats.
+"""
 
 import argparse
 import os
@@ -13,12 +17,12 @@ from ml_scratch import mse as mse_s, rmse as rmse_s, r2_score_scratch
 def load_pipeline(model_path: str) -> Dict[str, Any]:
     with open(model_path, 'rb') as f:
         pipeline = pickle.load(f)
-                                                                                                                      
+    # Expected keys: model, scaler, label_encoders, feature_names, target_column, numerical_medians, categorical_modes
     return pipeline
 
 
 def preprocess_with_pipeline(df: pd.DataFrame, pipeline: Dict[str, Any]) -> np.ndarray:
-                            
+    # Normalize column names
     df = df.copy()
     df.columns = df.columns.str.strip()
 
@@ -26,17 +30,17 @@ def preprocess_with_pipeline(df: pd.DataFrame, pipeline: Dict[str, Any]) -> np.n
     if target_col in df.columns:
         df = df.drop(columns=[target_col])
 
-                                           
+    # Ensure required feature columns exist
     feature_names = pipeline['feature_names']
     for col in feature_names:
         if col not in df.columns:
-                                                         
+            # Create missing columns as NaN to be imputed
             df[col] = np.nan
 
-                                                
+    # Restrict to expected feature set and order
     df = df[feature_names]
 
-                               
+    # Impute using stored stats
     num_medians = pipeline.get('numerical_medians', {})
     cat_modes = pipeline.get('categorical_modes', {})
     for col in df.columns:
@@ -51,13 +55,13 @@ def preprocess_with_pipeline(df: pd.DataFrame, pipeline: Dict[str, Any]) -> np.n
             else:
                 df[col] = df[col].fillna(df[col].mode().iloc[0] if not df[col].mode().empty else "")
 
-                                              
+    # Encode categoricals with stored encoders
     encoders = pipeline.get('label_encoders', {})
     for col, enc in encoders.items():
         if col in df.columns:
             df[col] = enc.transform(df[col].astype(str).tolist())
 
-                              
+    # Scale with stored scaler
     scaler = pipeline.get('scaler')
     X = df.values.astype(float)
     if scaler is not None:
@@ -76,7 +80,7 @@ def write_metrics_file(path: str, mse: float, rmse: float, r2: float):
 
 def write_predictions_file(path: str, preds: np.ndarray):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-                              
+    # Single column, no header
     pd.Series(preds).to_csv(path, index=False, header=False)
 
 
@@ -97,7 +101,7 @@ def main():
     if target_col not in df.columns:
         raise ValueError(f"Target column '{target_col}' not found in data.")
 
-                                                                                   
+    # Filter rows with valid target values (drop NaNs/infs for metrics consistency)
     mask = pd.to_numeric(df[target_col], errors='coerce').replace([np.inf, -np.inf], np.nan).notna()
     df_valid = df.loc[mask].copy()
     y_true = df_valid[target_col].astype(float).values
