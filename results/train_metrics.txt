@@ -1,0 +1,60 @@
+LIFE EXPECTANCY PREDICTION - MODEL PERFORMANCE METRICS
+============================================================
+
+MODEL: LINEAR_REGRESSION
+------------------------------
+Training Performance:
+  R² Score: 0.8261
+  RMSE: 3.9755
+  MAE: 2.9873
+  MSE: 15.8049
+Test Performance:
+  R² Score: 0.8105
+  RMSE: 4.0549
+  MAE: 2.9899
+  MSE: 16.4419
+Cross-Validation:
+  R² Score: 0.8193 (+/- 0.0367)
+
+============================================================
+
+MODEL: RIDGE_REGRESSION
+------------------------------
+Training Performance:
+  R² Score: 0.8259
+  RMSE: 3.9776
+  MAE: 2.9884
+  MSE: 15.8210
+Test Performance:
+  R² Score: 0.8106
+  RMSE: 4.0532
+  MAE: 2.9861
+  MSE: 16.4285
+Cross-Validation:
+  R² Score: 0.8191 (+/- 0.0365)
+
+============================================================
+
+MODEL: LASSO_REGRESSION
+------------------------------
+Training Performance:
+  R² Score: -0.1429
+  RMSE: 10.1915
+  MAE: 9.4348
+  MSE: 103.8670
+Test Performance:
+  R² Score: -0.2702
+  RMSE: 10.4979
+  MAE: 9.7414
+  MSE: 110.2052
+Cross-Validation:
+  R² Score: -6.4040 (+/- 0.6115)
+
+============================================================
+
+BEST MODEL SUMMARY
+==============================
+Best Model: ridge_regression
+Test R² Score: 0.8106
+Test RMSE: 4.0532
+Test MAE: 2.9861
